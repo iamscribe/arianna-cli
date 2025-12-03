@@ -397,11 +397,21 @@ class EnhancedFluidTransformer:  # Убираем наследование от 
 
 class EnhancedFieldCore:  # Убираем наследование
     """Расширенное ядро Field с дообучением"""
-    
+
     def __init__(self):
         # Убираем super() - это отдельный класс
         self.learning_core = Field2FieldCore()
         self.learning_core.start_continuous_learning()
+
+        # Initialize h2o compiler engine
+        self.h2o_runtime = h2o.H2ORuntime()
+        self.h2o_compiler = h2o.H2OCompiler(self.h2o_runtime)
+        self.h2o_engine = h2o.H2OExecutor(self.h2o_runtime, self.h2o_compiler)
+
+        # Initialize placeholders (will be set by actual Field instance)
+        self.current_transformer = None
+        self.session_id = None
+        self.memory = None
         
     def _spawn_new_transformer(self):
         """Создает новый трансформер с дообучением"""

@@ -302,9 +302,10 @@ The review comment series included the following direct quotes:
   - [scribe_file_browser.py](arianna_core_utils/scribe_file_browser.py) — Filesystem insights + search results
   - [whotheythinkiam.py](arianna_core_utils/whotheythinkiam.py) — README self-reflection + identity watchdog
 - **async_field_forever/**
-  - **field/** — Field core: cells, metrics, bridges, visuals
+  - **field/** — Field core: cells, metrics, bridges, visuals + **TRI-COMPILER STACK** (2025-12-03: Julia added!)
     - [field_core.py](async_field_forever/field/field_core.py) — Living transformer ecology loop
     - [transformer_cell.py](async_field_forever/field/transformer_cell.py) — Micro-transformer lifecycle + mutation
+    - [field2field.py](async_field_forever/field/field2field.py) — Meta-learning + h2o compilation engine
     - [config.py](async_field_forever/field/config.py) — Population thresholds, cadence, limits
     - [learning.py](async_field_forever/field/learning.py) — Embeddings + meta-learning feedback
     - [resonance_bridge.py](async_field_forever/field/resonance_bridge.py) — SQLite bridge into resonance.sqlite3
@@ -312,9 +313,15 @@ The review comment series included the following direct quotes:
     - [field_visualiser_hybrid.py](async_field_forever/field/field_visualiser_hybrid.py) — Terminal aurora renderer (repo + human)
     - [field_rag.py](async_field_forever/field/field_rag.py) — RAG ingest from resonance spine + repo
     - [suppertime_bridge.py](async_field_forever/field/suppertime_bridge.py) — Field ↔ Suppertime coupling
-    - [blood.py](async_field_forever/field/blood.py) — Low-level C/Nicole harness, memory/process
-    - [h2o.py](async_field_forever/field/h2o.py) — Minimal Python compiler runtime for cells
+    - **Tri-Compiler Stack** (inherited from Nicole):
+      - [h2o.py](async_field_forever/field/h2o.py) — Python bootstrap compiler (hot-loads transformer cells)
+      - [blood.py](async_field_forever/field/blood.py) — C compiler wrapper (deterministic kernels via nicole2c)
+      - [high.py](async_field_forever/field/high.py) — **Julia math engine** (entropy/resonance calculations, 10x speedup)
+      - **nicole2c/** (36MB) — Clang-based C compiler source (366 .cpp, 600 .h)
+      - **nicole_env/** (17MB) — Python build environment (190 .c files)
+      - **nicole2julia/** (512KB) — Julia runtime (array.jl, math.jl, intrinsics, etc.)
     - [seed_context.py](async_field_forever/field/seed_context.py) — Emergency resonance seeding for extinction
+    - [TRI_COMPILER_COMPLETE.md](async_field_forever/field/TRI_COMPILER_COMPLETE.md) — **NEW:** Tri-compiler integration docs
     - [VISUALISER_README.md](async_field_forever/field/VISUALISER_README.md) — Hybrid visualiser operations + rituals
   - **AMLK/** — Arianna Method Linux Kernel schematics
     - [letsgo.py](async_field_forever/AMLK/letsgo.py) — Kernel bootstrapper + health sync
