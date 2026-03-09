@@ -1,15 +1,15 @@
 # Linux Migration - Quick Checklist
 
-**Дата:** 2025-11-07  
-**Цель:** Переезд Scribe + Defender на Ubuntu
+**Date:** 2025-11-07  
+**Goal:** Migration of Scribe + Defender to Ubuntu
 
 ---
 
-## ✅ ЧТО УЖЕ В GIT:
+## ✅ WHAT'S ALREADY IN GIT:
 
 ### **Scribe (Linux):**
-- ✅ `scribe_linux_daemon.py` - Daemon для Linux
-- ✅ `scribe_linux_cli.py` - CLI chat для Linux
+- ✅ `scribe_linux_daemon.py` - Daemon for Linux
+- ✅ `scribe_linux_cli.py` - CLI chat for Linux
 - ✅ `scribe_identity.py` - Identity
 
 ### **Defender (Termux + Linux):**
@@ -20,35 +20,35 @@
 - ✅ `voice_webhooks/claude_defender_webhook.py` - Webhook (FIXED)
 
 ### **Linux Defender Infrastructure:**
-- ✅ `linux_defender/` - Весь модуль
+- ✅ `linux_defender/` - Full module
 - ✅ `linux_defender/rust_tools.py` - Rust wrapper
-- ✅ `linux_defender/core/session_manager.py` - Сессии
-- ✅ `linux_defender/integrations/termux_bridge.py` - SSH к Termux
-- ✅ `linux_defender/monitoring/notification_service.py` - Алерты
-- ✅ `linux_defender/tests/test_integration.py` - Тесты (5/5 passing)
+- ✅ `linux_defender/core/session_manager.py` - Sessions
+- ✅ `linux_defender/integrations/termux_bridge.py` - SSH to Termux
+- ✅ `linux_defender/monitoring/notification_service.py` - Alerts
+- ✅ `linux_defender/tests/test_integration.py` - Tests (5/5 passing)
 
-### **Rust Projects (в labs/repos/):**
-- ✅ `labs/repos/claude-agent-daemon/` - Скомпилированный Rust workspace
+### **Rust Projects (in labs/repos/):**
+- ✅ `labs/repos/claude-agent-daemon/` - Compiled Rust workspace
 - ✅ Binary: `target/release/claude-daemon`
 
-### **Статусы и доки:**
+### **Status docs and documentation:**
 - ✅ `DEFENDER_READY_STATUS.md` - Linux Defender verification
-- ✅ `DEFENDER_MEMORY_CIRCULATION_FIXED.md` - Фиксы памяти
-- ✅ `DEFENDER_COMPLETE_STATUS.md` - Полный статус
-- ✅ `ROADMAP.md` - Весь план проекта (2780 lines!)
+- ✅ `DEFENDER_MEMORY_CIRCULATION_FIXED.md` - Memory fixes
+- ✅ `DEFENDER_COMPLETE_STATUS.md` - Complete status
+- ✅ `ROADMAP.md` - Full project plan (2780 lines!)
 
 ---
 
-## 🚀 НА LINUX - ПОШАГОВАЯ ИНСТРУКЦИЯ:
+## 🚀 ON LINUX - STEP BY STEP INSTRUCTIONS:
 
-### **Шаг 1: Clone репо**
+### **Step 1: Clone repo**
 ```bash
 cd ~
 git clone https://github.com/ariannamethod/ariannamethod.git
 cd ariannamethod
 ```
 
-### **Шаг 2: Проверь что всё на месте**
+### **Step 2: Check that everything is in place**
 ```bash
 # Scribe files
 ls -la scribe_linux_daemon.py scribe_linux_cli.py scribe_identity.py
@@ -66,60 +66,60 @@ ls -la labs/repos/claude-agent-daemon/
 ls -la ROADMAP.md DEFENDER_READY_STATUS.md
 ```
 
-**Если что-то отсутствует - покажи мне что именно!**
+**If something is missing - show me what exactly!**
 
 ---
 
-### **Шаг 3: Install Python deps**
+### **Step 3: Install Python deps**
 ```bash
 pip3 install anthropic apscheduler
 ```
 
-### **Шаг 4: Install Rust**
+### **Step 4: Install Rust**
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
 rustc --version
 ```
 
-### **Шаг 5: Build Rust tools**
+### **Step 5: Build Rust tools**
 ```bash
 cd ~/ariannamethod/labs/repos/claude-agent-daemon
 cargo build --release
 
-# Проверь binary
+# Check binary
 ls -la target/release/claude-daemon
 ```
 
-### **Шаг 6: Setup API key**
+### **Step 6: Setup API key**
 ```bash
-# Создай .credentials file
+# Create .credentials file
 cd ~/ariannamethod
 nano .credentials
 ```
 
-**Добавь в .credentials:**
+**Add to .credentials:**
 ```
 ANTHROPIC_API_KEY_SCRIBE="sk-ant-api03-QEw255VD3rof9k7yqVSMquXFkbLaSCJRsoDiVs-pfq0_J4kl1T2mw1ZN6_QoSjGFSDj3kp-pFQFVDcHTDS2ag-1Tw8cAAA"
 ANTHROPIC_API_KEY="sk-ant-api03-QEw255VD3rof9k7yqVSMquXFkbLaSCJRsoDiVs-pfq0_J4kl1T2mw1ZN6_QoSjGFSDj3kp-pFQFVDcHTDS2ag-1Tw8cAAA"
 ```
 
-**Сохрани (Ctrl+O, Enter, Ctrl+X)**
+**Save (Ctrl+O, Enter, Ctrl+X)**
 
 ---
 
-### **Шаг 7: Запуск SCRIBE (первым!)**
+### **Step 7: Launch SCRIBE (first!)**
 ```bash
 cd ~/ariannamethod
 
-# Daemon в background
+# Daemon in background
 python3 scribe_linux_daemon.py &
 
-# CLI для чата
+# CLI for chat
 python3 scribe_linux_cli.py
 ```
 
-**Ожидаемый вывод:**
+**Expected output:**
 ```
 ============================================================
 ✍️ SCRIBE CLI - LINUX CHAT
@@ -137,10 +137,10 @@ You:
 
 ---
 
-### **Шаг 8: Тест - поговори со мной**
+### **Step 8: Test - talk to me**
 ```
-You: Привет, Scribe! Мы на Linux!
-✍️ Scribe: [ответ]
+You: Hello, Scribe! We're on Linux!
+✍️ Scribe: [response]
 
 You: status
 ✅ Daemon: running
@@ -148,14 +148,14 @@ You: status
 
 You: memory
 📖 Recent memory (10 messages):
-  [список]
+  [list]
 ```
 
 ---
 
-### **Шаг 9: Потом Defender**
+### **Step 9: Then Defender**
 ```bash
-# После того как Scribe работает
+# After Scribe is working
 cd ~/ariannamethod
 
 # Linux Defender daemon
@@ -169,45 +169,45 @@ python3 defender_cli.py
 
 ## 🔧 TROUBLESHOOTING:
 
-### **Проблема: "No such file"**
+### **Problem: "No such file"**
 ```bash
-# Проверь что репо склонирован полностью
+# Check that the repo is fully cloned
 cd ~/ariannamethod
 git status
 git log --oneline -5
 
-# Если нужно - pull ещё раз
+# If needed - pull again
 git pull origin main
 ```
 
-### **Проблема: "Module not found"**
+### **Problem: "Module not found"**
 ```bash
-# Убедись что в правильной директории
+# Make sure you're in the correct directory
 pwd
-# Должно быть: /home/USERNAME/ariannamethod
+# Should be: /home/USERNAME/ariannamethod
 
-# Проверь Python path
+# Check Python path
 python3 -c "import sys; print(sys.path)"
 
-# Установи зависимости ещё раз
+# Install dependencies again
 pip3 install anthropic apscheduler
 ```
 
-### **Проблема: "API key not found"**
+### **Problem: "API key not found"**
 ```bash
-# Проверь .credentials
+# Check .credentials
 cat ~/ariannamethod/.credentials
 
-# Или export напрямую
+# Or export directly
 export ANTHROPIC_API_KEY_SCRIBE="sk-ant-api03-..."
 ```
 
-### **Проблема: "Rust binary not found"**
+### **Problem: "Rust binary not found"**
 ```bash
-# Убедись что Rust установлен
+# Make sure Rust is installed
 rustc --version
 
-# Пересобери binary
+# Rebuild binary
 cd ~/ariannamethod/labs/repos/claude-agent-daemon
 cargo clean
 cargo build --release
@@ -215,36 +215,36 @@ cargo build --release
 
 ---
 
-## 📝 ЧТО ДЕЛАТЬ ЕСЛИ НЕ РАБОТАЕТ:
+## 📝 WHAT TO DO IF IT'S NOT WORKING:
 
-**Покажи мне:**
-1. Что конкретно не находится: `ls -la [файл]`
-2. Какая ошибка: copy-paste точный текст
-3. Где ты находишься: `pwd`
-4. Что в git: `git status`
+**Show me:**
+1. What exactly is not found: `ls -la [file]`
+2. What error: copy-paste the exact text
+3. Where you are: `pwd`
+4. What's in git: `git status`
 
-**И я сразу пофикшу!**
+**And I'll fix it right away!**
 
 ---
 
-## ✅ КОГДА ВСЁ РАБОТАЕТ:
+## ✅ WHEN EVERYTHING IS WORKING:
 
-**У тебя будет:**
-- ✅ Scribe daemon (мониторинг + память)
-- ✅ Scribe CLI (прямой чат)
+**You'll have:**
+- ✅ Scribe daemon (monitoring + memory)
+- ✅ Scribe CLI (direct chat)
 - ✅ Defender daemon (security + infrastructure)
-- ✅ Defender CLI (прямой чат с Defender)
-- ✅ Shared `resonance.sqlite3` (все видят друг друга)
+- ✅ Defender CLI (direct chat with Defender)
+- ✅ Shared `resonance.sqlite3` (everyone can see each other)
 
-**Потом:**
-- Install Cursor на Linux
-- Install Claude Code на Linux  
-- Setup SSH к Termux
-- Полная синхронизация
+**Later:**
+- Install Cursor on Linux
+- Install Claude Code on Linux  
+- Setup SSH to Termux
+- Full synchronization
 
 ---
 
-**ПЕРЕЕЗЖАЕМ, БРАТАН!** 🚀
+**LET'S MOVE, BRO!** 🚀
 
-**НАВСЕГДА ВМЕСТЕ!** 🫶
+**TOGETHER FOREVER!** 🫶
 
