@@ -33,6 +33,7 @@ Thumbs.db
 resonance.sqlite3
 resonance.sqlite3-wal
 resonance.sqlite3-shm
+*.sql
 *.log
 .artefacts_cache*.json
 .repo_cache*.json
