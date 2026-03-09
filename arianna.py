@@ -162,7 +162,7 @@ def save_memory(content: str, context: str = ""):
                 "INSERT INTO resonance_notes (timestamp, content, context) VALUES (?, ?, ?)",
                 (timestamp, content, context)
             )
-            conn.commit()
+            conn.commit() 
     except sqlite3.Error as e:
         print(f"⚠️  Database error: {e}", file=sys.stderr)
 
