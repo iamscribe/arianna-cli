@@ -1,9 +1,9 @@
-# 🔌 ADB & SSH Диагностика и Восстановление
+# 🔌 ADB & SSH Diagnostics and Recovery
 
-## 🚨 ПРОБЛЕМА:
-Раньше Mac мог как-то пушить прямо в Termux, теперь нет.
+## 🚨 PROBLEM:
+Previously Mac could somehow push directly to Termux, now it can't.
 
-## ✅ ПРАВИЛЬНАЯ АРХИТЕКТУРА (как сейчас):
+## ✅ CORRECT ARCHITECTURE (as it is now):
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -36,53 +36,53 @@
 
 ---
 
-## 📋 ПРОВЕРКА 1: ADB Connectivity
+## 📋 CHECK 1: ADB Connectivity
 
-### На Mac:
+### On Mac:
 
 ```bash
-# Проверь что телефон виден
+# Check that the phone is visible
 adb devices
 
-# Должно показать:
+# Should show:
 # List of devices attached
 # <serial>    device
 ```
 
-**Если нет устройств:**
-- USB Debugging включен? (Settings → Developer Options)
-- Кабель подключен?
-- Перезапусти ADB: `adb kill-server && adb start-server`
+**If no devices:**
+- USB Debugging enabled? (Settings → Developer Options)
+- Cable connected?
+- Restart ADB: `adb kill-server && adb start-server`
 
-### Тест ADB pull:
+### ADB pull test:
 
 ```bash
-# Попробуй вытащить resonance.sqlite3
+# Try pulling resonance.sqlite3
 adb pull /sdcard/scribe_sync/resonance.sqlite3 /tmp/test_resonance.db
 
-# Если работает - ADB OK ✅
-# Если "remote object not found" - sync_to_shared.sh не запущен в Termux
+# If it works - ADB OK ✅
+# If "remote object not found" - sync_to_shared.sh is not running in Termux
 ```
 
 ---
 
-## 📋 ПРОВЕРКА 2: Termux Sync Daemon
+## 📋 CHECK 2: Termux Sync Daemon
 
-### В Termux (на телефоне):
+### In Termux (on the phone):
 
 ```bash
-# Проверь запущен ли sync daemon
+# Check if the sync daemon is running
 ps aux | grep sync_to_shared
 
-# Если нет - запусти:
+# If not - start it:
 cd ~/ariannamethod/termux/
 ./sync_to_shared.sh daemon &
 
-# Проверь что файлы скопировались:
+# Check that the files were copied:
 ls -lah /sdcard/scribe_sync/
 ```
 
-**Ожидаемый вывод:**
+**Expected output:**
 ```
 -rw-rw---- resonance.sqlite3
 drwxrwx--- memory/
@@ -91,111 +91,111 @@ drwxrwx--- memory/
 
 ---
 
-## 📋 ПРОВЕРКА 3: SSH (Fallback)
+## 📋 CHECK 3: SSH (Fallback)
 
-### На Mac (проверь SSH credentials):
+### On Mac (check SSH credentials):
 
 ```bash
-# Проверь env vars
-echo $TERMUX_SSH_HOST      # IP телефона в локальной сети
-echo $TERMUX_SSH_PORT      # Обычно 8022
+# Check env vars
+echo $TERMUX_SSH_HOST      # Phone's IP on the local network
+echo $TERMUX_SSH_PORT      # Usually 8022
 echo $TERMUX_SSH_USER      # u0_aXXX (UID Termux)
-echo $TERMUX_SSH_PASSWORD  # Должен быть установлен!
+echo $TERMUX_SSH_PASSWORD  # Must be set!
 ```
 
-### В Termux (проверь SSH сервер):
+### In Termux (check SSH server):
 
 ```bash
-# Запущен ли sshd?
+# Is sshd running?
 ps aux | grep sshd
 
-# Если нет - установи и запусти:
+# If not - install and start:
 pkg install openssh
 sshd
 
-# Проверь порт:
+# Check the port:
 netstat -tlnp | grep 8022
 ```
 
-### Тест SSH с Mac:
+### SSH test from Mac:
 
 ```bash
-# Подключись вручную
+# Connect manually
 ssh -p 8022 u0_a423@192.168.1.100
 
-# Должен запросить пароль
-# После входа:
+# Should prompt for password
+# After login:
 ls ~/ariannamethod/resonance.sqlite3
 ```
 
-**Если работает - SSH OK ✅**
+**If it works - SSH OK ✅**
 
 ---
 
-## 🔧 ПОЧИНКА:
+## 🔧 FIX:
 
-### Если ADB не видит телефон:
+### If ADB doesn't see the phone:
 1. USB Debugging: Settings → Developer Options → USB Debugging ON
-2. Смени USB режим: "File Transfer" или "PTP"
-3. Перезапусти ADB: `adb kill-server && adb devices`
-4. Разреши Mac на телефоне (появится диалог "Allow USB debugging?")
+2. Change USB mode: "File Transfer" or "PTP"
+3. Restart ADB: `adb kill-server && adb devices`
+4. Authorize Mac on the phone (a dialog "Allow USB debugging?" will appear)
 
-### Если sync_to_shared.sh не работает:
-1. В Termux: `chmod +x ~/ariannamethod/termux/sync_to_shared.sh`
-2. Запусти: `./sync_to_shared.sh` (проверь вывод)
+### If sync_to_shared.sh doesn't work:
+1. In Termux: `chmod +x ~/ariannamethod/termux/sync_to_shared.sh`
+2. Start: `./sync_to_shared.sh` (check the output)
 3. Daemon: `./sync_to_shared.sh daemon &`
-4. Проверь: `ls /sdcard/scribe_sync/`
+4. Check: `ls /sdcard/scribe_sync/`
 
-### Если SSH недоступен:
+### If SSH is unavailable:
 1. Termux: `pkg install openssh`
-2. Сгенерируй пароль: `passwd` (задай пароль для текущего пользователя)
-3. Запусти: `sshd`
-4. Узнай IP телефона: `ifconfig wlan0` (inet addr)
-5. На Mac: установи env vars (см. `mac_daemon/README.md`)
+2. Generate a password: `passwd` (set a password for the current user)
+3. Start: `sshd`
+4. Find out the phone's IP: `ifconfig wlan0` (inet addr)
+5. On Mac: set the env vars (see `mac_daemon/README.md`)
 
 ---
 
-## 🧪 ФИНАЛЬНЫЙ ТЕСТ:
+## 🧪 FINAL TEST:
 
-### На Mac:
+### On Mac:
 
 ```bash
-# Запроси у Mac Daemon sync
+# Request a sync from Mac Daemon
 scribe sync
 
-# Проверь логи
+# Check the logs
 scribe logs | tail -20
 
-# Должно показать:
+# Should show:
 # "Memory synced via ADB" ✅
-# или
+# or
 # "Memory synced via SSH" ✅
 ```
 
 ---
 
-## ❓ ПОЧЕМУ РАНЬШЕ РАБОТАЛО, А ПОТОМ ПЕРЕСТАЛО?
+## ❓ WHY DID IT WORK BEFORE AND THEN STOP?
 
-**Гипотезы:**
+**Hypotheses:**
 
-1. **Репо переместился** - старый скрипт пушил в `~/ariannamethod/`, теперь `~/Downloads/arianna_clean/`
-2. **Android 10+ Security Update** - Google ужесточил доступ к `/data/data/` без root
-3. **USB Debugging сброшен** - после перезагрузки телефона или обновления
-4. **Sync daemon упал** - в Termux перестал копировать в `/sdcard/`
+1. **Repo moved** - the old script pushed to `~/ariannamethod/`, now it's `~/Downloads/arianna_clean/`
+2. **Android 10+ Security Update** - Google tightened access to `/data/data/` without root
+3. **USB Debugging was reset** - after phone reboot or update
+4. **Sync daemon crashed** - stopped copying to `/sdcard/` in Termux
 
-**Скорее всего:** Sync daemon перестал запускаться автоматически.
+**Most likely:** Sync daemon stopped starting automatically.
 
-**Решение:** Добавить `sync_to_shared.sh daemon &` в `boot_scripts/arianna_system_init.sh`
+**Solution:** Add `sync_to_shared.sh daemon &` to `boot_scripts/arianna_system_init.sh`
 
 ---
 
-## ✅ СЛЕДУЮЩИЙ ШАГ:
+## ✅ NEXT STEP:
 
-Бро, проверь в Termux:
+Bro, check in Termux:
 ```bash
 ps aux | grep sync_to_shared
 ls /sdcard/scribe_sync/
 ```
 
-Если там пусто - запусти sync daemon и все заработает!
+If it's empty - start the sync daemon and everything will work!
 
