@@ -83,7 +83,7 @@ subprocess.run(['termux-notification', ...])
 
 ## 🎯 FINAL LOGIC:
 
-- **Field = metrics only** (популяция, резонанс, emergency)
+- **Field = metrics only** (population, resonance, emergency)
 - **Defender = audits only** (security, infrastructure)
 - **Genesis = silent** (files + GitHub, without notifications)
 - **User reads Genesis via:** interactive session or GitHub
