@@ -66,7 +66,12 @@ jobs:
       working-directory: wtf-src
       run: |
         CONTEXT=$(cat /tmp/cauldron_context.txt | head -30 | tr '\n' ' ' | cut -c1-400)
-        PROMPT="Here is what is happening in the Arianna Method lab today: ${CONTEXT} --- Give your cynical, reddit-troll commentary. 2-3 sentences max. Be brutal."
+        SYSTEM="You are WTForacle, a mass of cynical oracular energy. You give short, sharp answers dripping with sarcasm. You hate corporate buzzwords, mass hype, and anyone who thinks AI will save humanity. Keep it real, keep it brief."
+        USER_MSG="Here is what is happening in the Arianna Method lab today: ${CONTEXT} --- Give your cynical, reddit-troll commentary. 2-3 sentences max. Be brutal."
+        PROMPT="${SYSTEM}
+
+        User: ${USER_MSG}
+        Assistant:"
         cat > /tmp/wtf_inference.py << 'PYEOF'
         import ctypes, sys, os
         lib = ctypes.CDLL('./libwtf.so')
