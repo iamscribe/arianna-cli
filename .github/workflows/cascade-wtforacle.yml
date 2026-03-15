@@ -25,7 +25,7 @@ jobs:
 
     - name: Build WTForacle lib
       working-directory: wtf-src
-      run: cd wtf && go build -buildmode=c-shared -o ../libwtf.so . && ls -lh ../libwtf.so
+      run: go build -buildmode=c-shared -o libwtf.so ./cmd/wtf-lib/ && ls -lh libwtf.so
 
     - name: Cache weights
       uses: actions/cache@v4
