@@ -1,0 +1,217 @@
+name: "Cascade 1: Biology"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/checkout@v4
+      with:
+        repository: ariannamethod/haiku.c
+        path: haiku-src
+
+    - uses: actions/checkout@v4
+      with:
+        repository: ariannamethod/1984
+        path: penelope-src
+
+    - uses: actions/checkout@v4
+      with:
+        repository: ariannamethod/molequla
+        path: molequla-src
+
+    - uses: actions/checkout@v4
+      with:
+        repository: ariannamethod/janus
+        path: janus-src
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+
+    - name: Install deps
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq libomp-dev gcc
+
+    - name: Build Haiku
+      working-directory: haiku-src
+      run: cc haiku.c -O2 -lm -o haiku && ls -lh haiku
+
+    - name: Build Molequla
+      working-directory: molequla-src
+      run: CGO_ENABLED=1 go build -o molequla . && ls -lh molequla
+
+    - name: Set date vars
+      run: |
+        DATESTAMP=$(date -u +%Y-%m-%d)
+        YESTERDAY=$(date -u -d "yesterday" +%Y-%m-%d 2>/dev/null || date -u -v-1d +%Y-%m-%d 2>/dev/null || echo "")
+        echo "DATESTAMP=$DATESTAMP" >> $GITHUB_ENV
+        echo "YESTERDAY=$YESTERDAY" >> $GITHUB_ENV
+        echo "Date: $DATESTAMP, Yesterday: $YESTERDAY"
+
+    # === STEP 1: PREPARE SEED ===
+    - name: "Prepare seed for Haiku"
+      run: |
+        C1="cascade/cascade1"
+        mkdir -p "$C1/seed" "$C1/haiku-lab" "$C1/penelope-lab" "$C1/molequla-lab" "$C1/nanojanus-lab"
+
+        SEED=""
+
+        # Day 1+: NanoJanus 12 words + yesterday's Penelope 12 words
+        if [ -n "$YESTERDAY" ]; then
+          NJ=""
+          PEN=""
+          if [ -f "$C1/nanojanus-lab/${YESTERDAY}.txt" ]; then
+            NJ=$(cat "$C1/nanojanus-lab/${YESTERDAY}.txt")
+          fi
+          if [ -f "$C1/penelope-lab/${YESTERDAY}.txt" ]; then
+            PEN=$(cat "$C1/penelope-lab/${YESTERDAY}.txt")
+          fi
+          if [ -n "$NJ" ] || [ -n "$PEN" ]; then
+            SEED="${NJ} ${PEN}"
+          fi
+        fi
+
+        # Day 0: genesis
+        if [ -z "$SEED" ]; then
+          SEED=$(cat "$C1/genesis.txt")
+        fi
+
+        echo "$SEED" > "$C1/seed/${DATESTAMP}.txt"
+        echo "=== Seed for Haiku ==="
+        cat "$C1/seed/${DATESTAMP}.txt"
+
+    # === STEP 2: HAIKU ===
+    - name: "Haiku generates"
+      run: |
+        C1="cascade/cascade1"
+        SEED=$(cat "$C1/seed/${DATESTAMP}.txt")
+        echo "Seed: $SEED"
+
+        RAW=$(echo "$SEED" | ./haiku-src/haiku 2>&1)
+
+        # Parse: 3 lines between status (d=...T=) and metrics (debt=)
+        HAIKU=$(echo "$RAW" | sed -n '/d=.*T=/,/debt=/p' | grep -v 'd=' | grep -v 'debt=' | grep -v '^$' | sed 's/^  //' | head -3)
+
+        # Fallback: indented lines that look like words
+        if [ -z "$HAIKU" ]; then
+          HAIKU=$(echo "$RAW" | grep '^  [a-z]' | head -3 | sed 's/^  //')
+        fi
+
+        echo "$HAIKU" > "$C1/haiku-lab/${DATESTAMP}.txt"
+        echo "=== Haiku ==="
+        cat "$C1/haiku-lab/${DATESTAMP}.txt"
+
+    # === STEP 3: PENELOPE ===
+    - name: "Penelope generates 12 words"
+      run: |
+        C1="cascade/cascade1"
+        HAIKU=$(cat "$C1/haiku-lab/${DATESTAMP}.txt" | tr '\n' ' ')
+        echo "Input to Penelope: $HAIKU"
+
+        RAW=$(python3 penelope-src/penelope.py --load penelope-src/weights/penelope.bin "$HAIKU" 2>&1)
+        echo "$RAW" > "$C1/penelope-lab/${DATESTAMP}_raw.txt"
+
+        # Extract the 12 words (lines that are single words, after seed)
+        WORDS=$(echo "$RAW" | grep -E '^\s+[a-z]+\s' | awk '{print $1}' | head -12 | tr '\n' ' ')
+        if [ -z "$WORDS" ]; then
+          # Fallback: grab any word-like output
+          WORDS=$(echo "$RAW" | grep -v '^\[' | grep -v '^$' | grep -v 'debt=' | grep -v 'destined' | tail -12 | tr '\n' ' ')
+        fi
+
+        echo "$WORDS" > "$C1/penelope-lab/${DATESTAMP}.txt"
+        echo "=== Penelope 12 words ==="
+        cat "$C1/penelope-lab/${DATESTAMP}.txt"
+
+    # === STEP 4: MOLEQULA (2x duration) ===
+    - name: "Molequla evolves (2x duration)"
+      working-directory: molequla-src
+      run: |
+        C1="../cascade/cascade1"
+        RUN_DIR="$C1/molequla-lab/${DATESTAMP}"
+        mkdir -p "$RUN_DIR"
+        DURATION=30  # doubled from 15
+
+        for elem in earth air water fire; do
+          echo "=== ${elem} ==="
+          timeout $((DURATION * 60)) ./molequla --element $elem --evolution > "${RUN_DIR}/${elem}.log" 2>&1 || true
+          sync
+          LINES=$(wc -l < "${RUN_DIR}/${elem}.log" 2>/dev/null || echo 0)
+          echo "${elem}: ${LINES} lines"
+        done
+
+        # Extract clean generated text for NanoJanus
+        for elem in earth air water fire; do
+          if [ -f "${RUN_DIR}/${elem}.log" ]; then
+            grep -v '^\[' "${RUN_DIR}/${elem}.log" | grep -v '^fatal:' | grep -v '^$' | tail -3
+          fi
+        done > "${RUN_DIR}/clean_output.txt"
+        echo "=== Molequla clean output ==="
+        cat "${RUN_DIR}/clean_output.txt"
+
+    # === STEP 5: NANOJANUS ===
+    - name: "NanoJanus generates 12 words"
+      run: |
+        C1="cascade/cascade1"
+        HAIKU=$(cat "$C1/haiku-lab/${DATESTAMP}.txt" | tr '\n' ' ')
+        PENELOPE=$(cat "$C1/penelope-lab/${DATESTAMP}.txt")
+        MOLEQULA=$(cat "$C1/molequla-lab/${DATESTAMP}/clean_output.txt" 2>/dev/null | head -5 | tr '\n' ' ')
+
+        # Combine all three as context, pick strongest word as origin
+        INPUT="${HAIKU} ${PENELOPE} ${MOLEQULA}"
+        echo "Input to NanoJanus: $INPUT"
+
+        RAW=$(python3 janus-src/nanojanus.py --weights janus-src/weights/nanojanus.bin --generate "$INPUT" 2>&1)
+        echo "$RAW" > "$C1/nanojanus-lab/${DATESTAMP}_raw.txt"
+
+        # Extract the 12 words from chain output
+        WORDS=$(echo "$RAW" | grep -E '^\s+[\^v]' | awk '{print $2}' | head -12 | tr '\n' ' ')
+        if [ -z "$WORDS" ]; then
+          WORDS=$(echo "$RAW" | grep -E '^\s+[a-z]+' | awk '{print $1}' | grep -v 'debt' | grep -v 'drift' | head -12 | tr '\n' ' ')
+        fi
+
+        echo "$WORDS" > "$C1/nanojanus-lab/${DATESTAMP}.txt"
+        echo "=== NanoJanus 12 words ==="
+        cat "$C1/nanojanus-lab/${DATESTAMP}.txt"
+
+    # === STEP 6: SAVE STATE ===
+    - name: "Update cascade.md"
+      run: |
+        C1="cascade/cascade1"
+        STATE="$C1/cascade.md"
+
+        # Append today's cycle
+        cat >> "$STATE" <<EOF
+
+        ---
+
+        ## ${DATESTAMP}
+
+        **seed:** $(cat "$C1/seed/${DATESTAMP}.txt" | head -1 | cut -c1-200)
+
+        **haiku:**
+        $(cat "$C1/haiku-lab/${DATESTAMP}.txt")
+
+        **penelope:** $(cat "$C1/penelope-lab/${DATESTAMP}.txt")
+
+        **molequla:** $(wc -l "$C1/molequla-lab/${DATESTAMP}/"*.log 2>/dev/null | tail -1)
+
+        **nanojanus:** $(cat "$C1/nanojanus-lab/${DATESTAMP}.txt")
+        EOF
+
+        echo "State updated."
+
+    # === PUSH ===
+    - name: Push
+      run: |
+        git config user.name "Cascade 1"
+        git config user.email "cascade@ariannamethod.org"
+        git add cascade/ || true
+        git diff --cached --quiet || git commit -m "cascade1: ${DATESTAMP}"
+        git push || (git pull --rebase origin main && git push) || true
