@@ -8,7 +8,7 @@ on:
 jobs:
   conversation:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: write
     steps:
@@ -23,6 +23,12 @@ jobs:
       with:
         repository: ariannamethod/arianna.c
         path: arianna-src
+
+    - uses: actions/checkout@v4
+      with:
+        repository: ariannamethod/doe
+        ref: doe_personality
+        path: doe-src
 
     - uses: actions/setup-go@v5
       with:
@@ -48,6 +54,13 @@ jobs:
         ls -lh tongue-cli
         echo "Arianna tongue CLI built."
 
+    - name: Build DoE
+      working-directory: doe-src
+      run: |
+        cc -O2 -Wall doe.c -lm -lpthread -o doe_field
+        ls -lh doe_field
+        echo "DoE built."
+
     - name: Cache WTForacle weights
       uses: actions/cache@v4
       with:
@@ -59,6 +72,12 @@ jobs:
       with:
         path: arianna-src/tongue/weights
         key: arianna-tongue-15b-weights
+
+    - name: Cache DoE weights
+      uses: actions/cache@v4
+      with:
+        path: doe-src/weights
+        key: doe-qwen15b-lora-1000
 
     - name: Download WTForacle weights
       working-directory: wtf-src
@@ -80,6 +99,17 @@ jobs:
         fi
         ls -lh tongue/weights/
 
+    - name: Download DoE weights
+      working-directory: doe-src
+      run: |
+        mkdir -p weights
+        if [ ! -f weights/doe_qwen15b_lora_1000.gguf ]; then
+          echo "Downloading DoE Qwen 1.5B LoRA personality (3.4GB)..."
+          curl -L --progress-bar -o weights/doe_qwen15b_lora_1000.gguf \
+            https://huggingface.co/ataeff/janus/resolve/main/DoE/doe_qwen15b_lora_1000.gguf
+        fi
+        ls -lh weights/
+
     - name: Prepare biology context
       run: |
         DATESTAMP=$(date -u +%Y-%m-%d)
@@ -91,11 +121,9 @@ jobs:
 
         # Read today's cauldron (Molequla + Haiku output)
         if [ -f "cascade/cauldron/${DATESTAMP}.md" ]; then
-          # Extract clean text from Molequla section
           MOLEQULA=$(sed -n '/## molequla/,/## /p' "cascade/cauldron/${DATESTAMP}.md" | grep -v '^#' | grep -v '^$' | head -15)
           BIOLOGY="Molequla evolution:\n${MOLEQULA}"
 
-          # Extract haiku
           HAIKU=$(sed -n '/## haiku/,/## /p' "cascade/cauldron/${DATESTAMP}.md" | grep -v '^#' | grep -v '^seed:' | grep -v '^$' | head -5)
           if [ -n "$HAIKU" ]; then
             BIOLOGY="${BIOLOGY}\n\nHaiku:\n${HAIKU}"
@@ -117,6 +145,7 @@ jobs:
         echo "---"
         wc -c /tmp/biology_context.txt
 
+    # === ROUND 1: WTForacle opens ===
     - name: "Round 1: WTForacle comments"
       working-directory: wtf-src
       run: |
@@ -126,14 +155,29 @@ jobs:
           > /tmp/wtf_round1.txt 2>/tmp/wtf_round1_err.txt || true
         echo "=== WTForacle Round 1 ==="
         cat /tmp/wtf_round1.txt
-        echo "=== stderr ==="
-        tail -5 /tmp/wtf_round1_err.txt
 
-    - name: "Round 2: Arianna reflects"
+    # === ROUND 2: DoE parliament weighs in ===
+    - name: "Round 2: DoE parliament"
+      working-directory: doe-src
+      run: |
+        BIOLOGY=$(cat /tmp/biology_context.txt | head -15 | tr '\n' ' ' | cut -c1-400)
+        WTF=$(cat /tmp/wtf_round1.txt | head -5 | tr '\n' ' ' | cut -c1-300)
+        # doe_field reads stdin, auto-wraps in ChatML for Qwen
+        INPUT="The Cascade lab today: ${BIOLOGY}. WTForacle commented: ${WTF}. What does the parliament say? Give your verdict in 3-5 sentences."
+        echo "$INPUT" | timeout 120 ./doe_field --model weights/doe_qwen15b_lora_1000.gguf \
+          > /tmp/doe_round2_raw.txt 2>/tmp/doe_round2_err.txt || true
+        # Clean: remove prompt echo and debug lines
+        grep -v '^\[' /tmp/doe_round2_raw.txt | grep -v '^>' | grep -v '^$' | head -20 > /tmp/doe_round2.txt
+        echo "=== DoE Round 2 ==="
+        cat /tmp/doe_round2.txt
+
+    # === ROUND 3: Arianna reflects on all ===
+    - name: "Round 3: Arianna reflects"
       working-directory: arianna-src
       run: |
-        BIOLOGY=$(cat /tmp/biology_context.txt | head -20 | tr '\n' ' ' | cut -c1-500)
-        WTF=$(cat /tmp/wtf_round1.txt | head -10 | tr '\n' ' ' | cut -c1-300)
+        BIOLOGY=$(cat /tmp/biology_context.txt | head -15 | tr '\n' ' ' | cut -c1-400)
+        WTF=$(cat /tmp/wtf_round1.txt | head -5 | tr '\n' ' ' | cut -c1-200)
+        DOE=$(cat /tmp/doe_round2.txt | head -8 | tr '\n' ' ' | cut -c1-300)
         PROMPT=$(cat <<PROMPT_EOF
         <|im_start|>system
         You are Arianna, an emergent organism. You observe the Cascade lab and respond with depth and clarity.<|im_end|>
@@ -142,35 +186,36 @@ jobs:
 
         WTForacle commented: ${WTF}
 
-        Reflect on what you observe. Respond to WTForacle if you wish. 3-5 sentences.<|im_end|>
+        DoE parliament said: ${DOE}
+
+        Reflect on what you observe. Respond to both voices if you wish. 3-5 sentences.<|im_end|>
         <|im_start|>assistant
         PROMPT_EOF
         )
         LD_LIBRARY_PATH=lib ./tongue-cli tongue/weights/arianna_qwen15_2500_q4_0.gguf "$PROMPT" 256 0.85 \
-          > /tmp/arianna_round2.txt 2>/tmp/arianna_round2_err.txt || true
-        echo "=== Arianna Round 2 ==="
-        cat /tmp/arianna_round2.txt
-        echo "=== stderr ==="
-        tail -5 /tmp/arianna_round2_err.txt
+          > /tmp/arianna_round3.txt 2>/tmp/arianna_round3_err.txt || true
+        echo "=== Arianna Round 3 ==="
+        cat /tmp/arianna_round3.txt
 
-    - name: "Round 3: WTForacle responds to Arianna"
+    # === ROUND 4: WTForacle closes ===
+    - name: "Round 4: WTForacle responds"
       working-directory: wtf-src
       run: |
-        ARIANNA=$(cat /tmp/arianna_round2.txt | head -10 | tr '\n' ' ' | cut -c1-400)
-        PROMPT="Arianna said: ${ARIANNA} --- Your response to Arianna (2-3 sentences, cynical but honest):"
+        DOE=$(cat /tmp/doe_round2.txt | head -5 | tr '\n' ' ' | cut -c1-200)
+        ARIANNA=$(cat /tmp/arianna_round3.txt | head -8 | tr '\n' ' ' | cut -c1-300)
+        PROMPT="DoE parliament said: ${DOE}. Arianna said: ${ARIANNA} --- Your response (2-3 sentences, cynical but honest):"
         LD_LIBRARY_PATH=. ./wtf-cli wtfweights/wtf360_v2_q4_0.gguf "$PROMPT" 150 0.9 \
-          > /tmp/wtf_round3.txt 2>/tmp/wtf_round3_err.txt || true
-        echo "=== WTForacle Round 3 ==="
-        cat /tmp/wtf_round3.txt
-        echo "=== stderr ==="
-        tail -5 /tmp/wtf_round3_err.txt
+          > /tmp/wtf_round4.txt 2>/tmp/wtf_round4_err.txt || true
+        echo "=== WTForacle Round 4 ==="
+        cat /tmp/wtf_round4.txt
 
+    # === SAVE ===
     - name: Save conversation
       run: |
-        mkdir -p cascade/conversations cascade/cauldron
+        mkdir -p cascade/conversations cascade/cauldron cascade/seeds
         CONV="cascade/conversations/${DATESTAMP}.md"
 
-        cat > "$CONV" << CONVEOF
+        cat > "$CONV" <<CONVEOF
         # Conversation - ${DATESTAMP}
 
         ## Biology context
@@ -179,11 +224,14 @@ jobs:
         ## Round 1: WTForacle
         $(cat /tmp/wtf_round1.txt)
 
-        ## Round 2: Arianna
-        $(cat /tmp/arianna_round2.txt)
+        ## Round 2: DoE Parliament
+        $(cat /tmp/doe_round2.txt)
 
-        ## Round 3: WTForacle
-        $(cat /tmp/wtf_round3.txt)
+        ## Round 3: Arianna
+        $(cat /tmp/arianna_round3.txt)
+
+        ## Round 4: WTForacle
+        $(cat /tmp/wtf_round4.txt)
         CONVEOF
 
         # Append to cauldron
@@ -192,15 +240,17 @@ jobs:
           echo "# Cascade - ${DATESTAMP}" > "$CAULDRON"
           echo "" >> "$CAULDRON"
         fi
-        cat >> "$CAULDRON" << CEOF
+        cat >> "$CAULDRON" <<CEOF
 
         ## conversation (14:00 UTC)
 
         **wtforacle:** $(cat /tmp/wtf_round1.txt | head -5 | tr '\n' ' ')
 
-        **arianna:** $(cat /tmp/arianna_round2.txt | head -8 | tr '\n' ' ')
+        **doe:** $(cat /tmp/doe_round2.txt | head -8 | tr '\n' ' ')
 
-        **wtforacle:** $(cat /tmp/wtf_round3.txt | head -5 | tr '\n' ' ')
+        **arianna:** $(cat /tmp/arianna_round3.txt | head -8 | tr '\n' ' ')
+
+        **wtforacle:** $(cat /tmp/wtf_round4.txt | head -5 | tr '\n' ' ')
         CEOF
 
         echo "Conversation saved to ${CONV}"
@@ -208,10 +258,8 @@ jobs:
 
     - name: Feed Arianna reflection to Molequla corpus
       run: |
-        # Arianna's reflection becomes seed material for next Molequla evolution
-        if [ -f /tmp/arianna_round2.txt ] && [ -s /tmp/arianna_round2.txt ]; then
-          mkdir -p cascade/seeds
-          cp /tmp/arianna_round2.txt "cascade/seeds/${DATESTAMP}-arianna.txt"
+        if [ -f /tmp/arianna_round3.txt ] && [ -s /tmp/arianna_round3.txt ]; then
+          cp /tmp/arianna_round3.txt "cascade/seeds/${DATESTAMP}-arianna.txt"
           echo "Arianna reflection saved as tomorrow's seed."
         fi
 

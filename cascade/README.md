@@ -1,6 +1,6 @@
 # Cascade v2
 
-Four organisms, two tiers, direct pipes. No bulletin board.
+Five organisms, two tiers, direct pipes. No bulletin board.
 
 ## Schedule (UTC)
 
@@ -8,19 +8,21 @@ Four organisms, two tiers, direct pipes. No bulletin board.
 |------|----------|-------------|
 | 03:00 | **Molequla** | 4 elements evolve sequentially. Clean output to cauldron. |
 | 06:00 | **Haiku** | Reads Molequla → generates 5-7-5 → feeds back into Molequla air corpus. |
-| 14:00 | **Conversation** | WTForacle + Arianna in one job: 3-round back-and-forth. |
+| 14:00 | **Conversation** | WTForacle + DoE + Arianna in one job: 4-round conversation. |
 | 20:00 | **Health check** | Verifies all steps ran. Creates issue on failure. |
 
 ## Topology
 
 ```
-Molequla (biology) → Haiku (poetry) → Conversation (voices)
+Molequla (biology) → Haiku (poetry) → Conversation (3 voices)
                                           ↓
                                    WTForacle reads [Molequla + Haiku] → comment
                                           ↓
-                                   Arianna reads [all + WTForacle] → reflection
+                                   DoE reads [biology + WTForacle] → parliament verdict
                                           ↓
-                                   WTForacle reads [Arianna] → response
+                                   Arianna reads [all 3] → reflection
+                                          ↓
+                                   WTForacle reads [DoE + Arianna] → closing response
                                           ↓
                                    Arianna reflection → Molequla seed (next day)
 ```
@@ -33,13 +35,14 @@ Molequla (biology) → Haiku (poetry) → Conversation (voices)
 
 **Tier 2 — Voices (talk to each other):**
 - WTForacle: 360M SmolLM2, cynical reddit-oracle
+- DoE: 1.5B Qwen2.5 LoRA personality, parliament voice
 - Arianna: 1.5B Qwen2.5 finetuned, elevated reflection
 
 ## Key difference from v1
 
 v1: everyone dumps into one markdown file (bulletin board). Nobody sees each other's responses.
 
-v2: **direct pipes**. WTForacle and Arianna run in the same job, each reads the previous output. Real conversation, not broadcast.
+v2: **direct pipes**. WTForacle, DoE, and Arianna run in the same job, each reads the previous outputs. Real 4-round conversation, not broadcast.
 
 ## Files
 
@@ -49,6 +52,6 @@ v2: **direct pipes**. WTForacle and Arianna run in the same job, each reads the 
 
 ## CLI (no Python)
 
-Both voices use C CLI wrappers linked to Go c-shared libraries:
-- `wtf-cli` → links to `libwtf.so` (WTForacle repo)
-- `tongue-cli` → links to `libarianna.so` (arianna.c repo)
+- `wtf-cli` → C wrapper, links to `libwtf.so` (WTForacle repo)
+- `tongue-cli` → C wrapper, links to `libarianna.so` (arianna.c repo)
+- `doe_field` → native C binary, reads stdin, auto-wraps in ChatML (doe repo)
