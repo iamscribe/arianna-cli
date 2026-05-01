@@ -515,3 +515,20 @@ about who get which
 **molequla:**   1767 total
 
 **nanojanus:** ich sap set hiatus hill serf ang ers solar vine ary palm 
+
+---
+
+## 2026-05-01
+
+**seed:** psalm seed melt hope hat stretch ates stall sand bind stress makes  extended penelope by loaded mode: curse island loss herb irony sand bystander 
+
+**haiku:**
+steppe been has had were
+said did may must might should shall
+ought yes no just him
+
+**penelope:** extended penelope by loaded mode: steppe half stop pour hol riddle drop 
+
+**molequla:**  1220 total
+
+**nanojanus:** hat ame rat hip hill sink pump kin riddle sand psalm act 
